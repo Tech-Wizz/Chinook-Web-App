@@ -38,10 +38,14 @@ public class Homework1 extends DBTest {
          */
     void selectTheTrackAndAlbumAndArtistForAllTracksLongerThanSixMinutes() {
         List<Map<String, Object>> results = executeSQL(
-                "SELECT tracks.Name as TrackName, albums.Title as AlbumTitle, artists.Name as ArtistsName FROM tracks " +
-                        "JOIN tracks ON artists.ArtistID = tracks.ArtistID" +
-                        "JOIN tracks ON albums.AlbumID = tracks.AlbumID" +
-                        "GROUP BY tracks.AlbumID HAVING Milliseconds > 1");
+                "SELECT tracks.Name as TrackName, " +
+                            "tracks.Milliseconds as Milliseconds, " +
+                            "albums.Title as AlbumTitle, " +
+                            "artists.Name as ArtistsName " +
+                        "FROM tracks " +
+                            "JOIN albums on tracks.AlbumId = albums.AlbumId " +
+                            "JOIN artists on albums.ArtistId = artists.ArtistId " +
+                        "WHERE Milliseconds > 360000");
 
         assertEquals(623, results.size());
 
