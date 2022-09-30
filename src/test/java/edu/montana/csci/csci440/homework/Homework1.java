@@ -1,7 +1,9 @@
 package edu.montana.csci.csci440.homework;
 
+import com.fasterxml.jackson.databind.deser.std.FromStringDeserializer;
 import edu.montana.csci.csci440.DBTest;
 import org.junit.jupiter.api.Test;
+import spark.embeddedserver.jetty.websocket.WebSocketHandlerWrapper;
 
 import java.util.List;
 import java.util.Map;
@@ -14,7 +16,7 @@ public class Homework1 extends DBTest {
      * Write a query in the string below that returns all artists that have an 'A' in their name
      */
     void selectArtistsWhoseNameHasAnAInIt(){
-        List<Map<String, Object>> results = executeSQL("SELECT * FROM artists");
+        List<Map<String, Object>> results = executeSQL("SELECT * FROM artists WHERE name LIKE '%A%'");
         assertEquals(211, results.size());
     }
 
@@ -23,8 +25,7 @@ public class Homework1 extends DBTest {
      * Write a query in the string below that returns all artists that have more than one album
      */
     void selectAllArtistsWithMoreThanOneAlbum(){
-        List<Map<String, Object>> results = executeSQL(
-                "SELECT * FROM artists");
+        List<Map<String, Object>> results = executeSQL("SELECT *, COUNT(DISTINCT albums.AlbumID) AS albums FROM artists JOIN albums ON artists.ArtistID = albums.ArtistID GROUP BY artists.ArtistID HAVING Albums > 1");
 
         assertEquals(56, results.size());
         assertEquals("AC/DC", results.get(0).get("Name"));
@@ -38,7 +39,9 @@ public class Homework1 extends DBTest {
     void selectTheTrackAndAlbumAndArtistForAllTracksLongerThanSixMinutes() {
         List<Map<String, Object>> results = executeSQL(
                 "SELECT tracks.Name as TrackName, albums.Title as AlbumTitle, artists.Name as ArtistsName FROM tracks " +
-                        "-- NEED TO DO SOME JOINS HERE KIDS");
+                        "JOIN tracks ON artists.ArtistID = tracks.ArtistID" +
+                        "JOIN tracks ON albums.AlbumID = tracks.AlbumID" +
+                        "GROUP BY tracks.AlbumID HAVING Milliseconds > 1");
 
         assertEquals(623, results.size());
 
