@@ -16,7 +16,7 @@ public class Homework2 extends DBTest {
      */
     public void createTracksPlusView(){
         //TODO fill this in
-        executeDDL("CREATE VIEW tracksPlus AS SELECT tracks.TrackId* " +
+        executeDDL("CREATE VIEW tracksPlus AS SELECT TrackId, " +
                 "genres.Name AS GenreName, " +
                 "artists.Name AS ArtistName, " +
                 "albums.Title AS AlbumTitle " +
