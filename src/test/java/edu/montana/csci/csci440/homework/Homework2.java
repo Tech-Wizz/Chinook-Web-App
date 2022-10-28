@@ -16,7 +16,13 @@ public class Homework2 extends DBTest {
      */
     public void createTracksPlusView(){
         //TODO fill this in
-        executeDDL("CREATE VIEW tracksPlus");
+        executeDDL("CREATE VIEW tracksPlus AS SELECT tracks.TrackId* " +
+                "genres.Name AS GenreName, " +
+                "artists.Name AS ArtistName, " +
+                "albums.Title AS AlbumTitle " +
+                "FROM tracks JOIN albums ON tracks.AlbumID = albums.AlbumID " +
+                "JOIN artists ON albums.ArtistId = artists.ArtistId " +
+                "JOIN genres ON tracks.GenreId = genres.GenreId");
 
         List<Map<String, Object>> results = executeSQL("SELECT * FROM tracksPlus ORDER BY TrackId");
         assertEquals(3503, results.size());
@@ -36,8 +42,14 @@ public class Homework2 extends DBTest {
      */
     public void createGrammyInfoTable(){
         //TODO fill these in
-        executeDDL("create table grammy_categories");
-        executeDDL("create table grammy_infos");
+        executeDDL("create table grammy_categories( " +
+                        "Name TEXT, " +
+                        "GrammyCategoryId INTEGER PRIMARY KEY)");
+        executeDDL("create table grammy_infos(ArtistId INTEGER PRIMARY KEY, " +
+                        "AlbumId INTEGER NOT NULL UNIQUE, " +
+                        "TrackId INTEGER NOT NULL UNIQUE, " +
+                        "GrammyCategoryId INTEGER UNIQUE, " +
+                        "Status TEXT NOT NULL UNIQUE)");
 
         // TEST CODE
         executeUpdate("INSERT INTO grammy_categories(Name) VALUES ('Greatest Ever');");
@@ -61,7 +73,12 @@ public class Homework2 extends DBTest {
         Integer before = (Integer) executeSQL("SELECT COUNT(*) as COUNT FROM genres").get(0).get("COUNT");
 
         //TODO fill this in
-        executeUpdate("INSERT");
+        executeUpdate("INSERT INTO genres (Name) VALUES " +
+                                    "(\'Rock\'), " +
+                                    "(\'Latin\'), " +
+                                    "(\'World\'), " +
+                                    "(\'Drama\'), " +
+                                    "(\'Comedy\')");
 
         Integer after = (Integer) executeSQL("SELECT COUNT(*) as COUNT FROM genres").get(0).get("COUNT");
         assertEquals(before + 5, after);
