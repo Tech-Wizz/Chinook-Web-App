@@ -25,12 +25,9 @@
 [INFO] -------------------------------------------------------
 [INFO] Running edu.montana.csci.csci440.homework.Homework3
 Resetting DB After Test...
-No redis found to reset
 Resetting DB After Test...
-No redis found to reset
 Resetting DB After Test...
-No redis found to reset
-[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.424 s - in edu.montana.csci.csci440.homework.Homework3
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.458 s - in edu.montana.csci.csci440.homework.Homework3
 [INFO] 
 [INFO] Results:
 [INFO] 
@@ -39,6 +36,6 @@ No redis found to reset
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD SUCCESS
 [INFO] ------------------------------------------------------------------------
-[INFO] Total time:  1.590 s
-[INFO] Finished at: 2022-11-29T08:59:46-07:00
+[INFO] Total time:  1.443 s
+[INFO] Finished at: 2022-11-30T16:50:32-07:00
 [INFO] ------------------------------------------------------------------------
