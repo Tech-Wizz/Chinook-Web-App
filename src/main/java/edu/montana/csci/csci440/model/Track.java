@@ -67,7 +67,7 @@ public class Track extends Model {
 
     public static Long count() {
         Jedis redisClient = new Jedis(); // use this class to access redis and create a cache
-        String stringValue = redisClient.get("cs440-tracks-count-cache");
+        String stringValue = redisClient.get(REDIS_CACHE_KEY);
         if (stringValue != null){
             return Long.parseLong(stringValue);
         }
@@ -249,7 +249,7 @@ public class Track extends Model {
     public String getArtistName() {
         // TODO implement more efficiently
         //  hint: cache on this model object
-        return albumName;
+        return artistName;
     }
 
     public String getAlbumTitle() {
@@ -274,17 +274,17 @@ public class Track extends Model {
             args.add(artistId);
         }
         if (albumId!=null){
-            query+=" AND AlbumId=? ";
+            query+=" AND albums.AlbumId=? ";
             args.add(albumId);
         }
 
         if (maxRuntime!=null){
-            query+=" AND Milliseconds<=? ";
+            query+=" AND milliseconds<? ";
             args.add(maxRuntime);
         }
 
         if (minRuntime!=null){
-            query+=" AND Milliseconds>=?";
+            query+=" AND milliseconds>?";
             args.add(minRuntime);
         }
 
@@ -343,6 +343,22 @@ public class Track extends Model {
         }
     }
 
+    public static List<Track> forPlaylist(Long albumId) {
+        String query = "SELECT * FROM tracks WHERE MediaTypeId = ? AND tracks.Name NOT LIKE '%The Fix%' ORDER BY Name";
+        try (Connection conn = DB.connect();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setLong(1, albumId);
+            ResultSet results = stmt.executeQuery();
+            List<Track> resultList = new LinkedList<>();
+            while (results.next()) {
+                resultList.add(new Track(results));
+            }
+            return resultList;
+        } catch (SQLException sqlException) {
+            throw new RuntimeException(sqlException);
+        }
+    }
+
     // Sure would be nice if java supported default parameter values
     public static List<Track> all() {
         return all(0, Integer.MAX_VALUE);
@@ -353,9 +369,10 @@ public class Track extends Model {
     }
 
     public static List<Track> all(int page, int count, String orderBy) {
+        String first = "SELECT * FROM tracks ORDER BY " + orderBy + " ";
         try (Connection conn = DB.connect();
              PreparedStatement stmt = conn.prepareStatement(
-                     "SELECT * FROM tracks LIMIT ? OFFSET ?"
+                     first + " LIMIT ? OFFSET ?"
              )) {
             stmt.setInt(1, count);
             stmt.setInt(2, (page-1)*count);
