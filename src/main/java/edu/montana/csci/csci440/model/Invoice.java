@@ -110,8 +110,10 @@ public class Invoice extends Model {
     public static List<Invoice> all(int page, int count) {
         try (Connection conn = DB.connect();
              PreparedStatement stmt = conn.prepareStatement(
-                     "SELECT * FROM invoices"
+                     "SELECT * FROM invoices LIMIT ? OFFSET ?"
              )) {
+            stmt.setInt(1, count);
+            stmt.setInt(2, (page-1)*count);
             ResultSet results = stmt.executeQuery();
             List<Invoice> resultList = new LinkedList<>();
             while (results.next()) {
