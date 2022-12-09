@@ -25,6 +25,8 @@ public class Track extends Model {
     private Long milliseconds;
     private Long bytes;
     private BigDecimal unitPrice;
+    private String artistName;
+    private String albumName;
     public static final String REDIS_CACHE_KEY = "cs440-tracks-count-cache";
 
     public Track() {
@@ -44,6 +46,8 @@ public class Track extends Model {
         albumId = results.getLong("AlbumId");
         mediaTypeId = results.getLong("MediaTypeId");
         genreId = results.getLong("GenreId");
+        artistName = getAlbum().getArtist().getName();
+        albumName =getAlbum().getTitle();
     }
 
     public static Track find(long i) {
@@ -63,18 +67,92 @@ public class Track extends Model {
 
     public static Long count() {
         Jedis redisClient = new Jedis(); // use this class to access redis and create a cache
-        try (Connection conn = DB.connect();
-             PreparedStatement stmt = conn.prepareStatement("SELECT COUNT(*) as Count FROM tracks")) {
-            ResultSet results = stmt.executeQuery();
-            if (results.next()) {
-                return results.getLong("Count");
-            } else {
-                throw new IllegalStateException("Should find a count!");
+        String stringValue = redisClient.get("cs440-tracks-count-cache");
+        if (stringValue != null){
+            return Long.parseLong(stringValue);
+        }
+        else {
+            try (Connection conn = DB.connect();
+                 PreparedStatement stmt = conn.prepareStatement("SELECT COUNT(*) as Count FROM tracks")) {
+                ResultSet results = stmt.executeQuery();
+                if (results.next()) {
+                    redisClient.set("cs440-tracks-count-cache", results.getString("Count"));
+                    return results.getLong("Count");
+                } else {
+                    throw new IllegalStateException("Should find a count!");
+                }
+            } catch (SQLException sqlException) {
+                throw new RuntimeException(sqlException);
             }
+        }
+    }
+
+    @Override
+    public boolean verify() {
+        _errors.clear(); // clear any existing errors
+        if (name == null || "".equals(name)) {
+            addError("Title can't be null or blank!");
+        }
+        if (albumId == null) {
+            addError("Artist Id  can't be null!");
+        }
+        return !hasErrors();
+    }
+
+    @Override
+    public boolean update() {
+        if (verify()) {
+            try (Connection conn = DB.connect();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "UPDATE tracks SET Name=? WHERE TrackId=?")) {
+                stmt.setString(1, this.getName());
+                stmt.setLong(2, this.getTrackId());
+                stmt.executeUpdate();
+                return true;
+            } catch (SQLException sqlException) {
+                throw new RuntimeException(sqlException);
+            }
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public void delete() {
+        try (Connection conn = DB.connect();
+             PreparedStatement stmt = conn.prepareStatement(
+                     "DELETE FROM tracks WHERE TrackId=?")) {
+            stmt.setLong(1, this.getTrackId());
+            stmt.executeUpdate();
+            Jedis redisClient = new Jedis(); //accesses redis and creates a cache
+            redisClient.del("cs440-tracks-count-cache");
         } catch (SQLException sqlException) {
             throw new RuntimeException(sqlException);
         }
     }
+
+    @Override
+    public boolean create() {
+        if (verify()) {
+            try (Connection conn = DB.connect();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "INSERT INTO tracks (Name, AlbumId, MediaTypeId, GenreId, Milliseconds, Bytes, UnitPrice) VALUES (?, ?, 1, 1, 1, 1, ?)")) {
+                stmt.setString(1, this.getName());
+                stmt.setLong(2, this.getAlbumId());
+                stmt.setBigDecimal(3, BigDecimal.valueOf(1));
+                stmt.executeUpdate();
+                trackId = DB.getLastID(conn);
+                Jedis redisClient = new Jedis(); // accessess redis and creates a cache
+                redisClient.del("cs440-tracks-count-cache");
+                return true;
+            } catch (SQLException sqlException) {
+                throw new RuntimeException(sqlException);
+            }
+        } else {
+            return false;
+        }
+    }
+
 
     public Album getAlbum() {
         return Album.find(albumId);
@@ -87,7 +165,17 @@ public class Track extends Model {
         return null;
     }
     public List<Playlist> getPlaylists(){
-        return Collections.emptyList();
+        try (Connection conn = DB.connect();
+             PreparedStatement stmt = conn.prepareStatement("SELECT * FROM playlists JOIN playlist_track on playlist_track.PlaylistId=playlists.PlaylistId JOIN tracks on tracks.TrackId=playlist_track.TrackId WHERE tracks.TrackId=? ORDER By playlists.Name")) {
+            stmt.setLong(1, this.getTrackId());
+            ResultSet results = stmt.executeQuery();
+            List<Playlist> resultList= new LinkedList<>();
+            while (results.next()) {
+                resultList.add(new Playlist(results));
+            } return resultList;
+        } catch (SQLException sqlException) {
+            throw new RuntimeException(sqlException);
+        }
     }
 
     public Long getTrackId() {
@@ -161,13 +249,13 @@ public class Track extends Model {
     public String getArtistName() {
         // TODO implement more efficiently
         //  hint: cache on this model object
-        return getAlbum().getArtist().getName();
+        return albumName;
     }
 
     public String getAlbumTitle() {
         // TODO implement more efficiently
         //  hint: cache on this model object
-        return getAlbum().getTitle();
+        return albumName;
     }
 
     public static List<Track> advancedSearch(int page, int count,
@@ -184,6 +272,20 @@ public class Track extends Model {
         if (artistId != null) {
             query += " AND ArtistId=? ";
             args.add(artistId);
+        }
+        if (albumId!=null){
+            query+=" AND AlbumId=? ";
+            args.add(albumId);
+        }
+
+        if (maxRuntime!=null){
+            query+=" AND Milliseconds<=? ";
+            args.add(maxRuntime);
+        }
+
+        if (minRuntime!=null){
+            query+=" AND Milliseconds>=?";
+            args.add(minRuntime);
         }
 
         //  include the limit (you should include the page too :)
@@ -256,6 +358,7 @@ public class Track extends Model {
                      "SELECT * FROM tracks LIMIT ?"
              )) {
             stmt.setInt(1, count);
+            stmt.setInt(2, count*(page-1));
             ResultSet results = stmt.executeQuery();
             List<Track> resultList = new LinkedList<>();
             while (results.next()) {

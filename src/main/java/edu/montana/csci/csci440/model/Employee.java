@@ -53,6 +53,9 @@ public class Employee extends Model {
         if (lastName == null || "".equals(lastName)) {
             addError("LastName can't be null!");
         }
+        if(email == null|| "".equals(email) || !email.contains("@")){
+            addError("Email can't be null!");
+        }
         return !hasErrors();
     }
 
@@ -85,6 +88,7 @@ public class Employee extends Model {
                 stmt.setString(1, this.getFirstName());
                 stmt.setString(2, this.getLastName());
                 stmt.setString(3, this.getEmail());
+                stmt.setLong(4, this.getReportsTo());
                 stmt.executeUpdate();
                 employeeId = DB.getLastID(conn);
                 return true;
@@ -171,9 +175,10 @@ public class Employee extends Model {
     public static List<Employee> all(int page, int count) {
         try (Connection conn = DB.connect();
              PreparedStatement stmt = conn.prepareStatement(
-                     "SELECT * FROM employees LIMIT ?"
+                     "SELECT * FROM employees LIMIT ? OFFSET ?"
              )) {
             stmt.setInt(1, count);
+            stmt.setInt(2, (page-1)*count);
             ResultSet results = stmt.executeQuery();
             List<Employee> resultList = new LinkedList<>();
             while (results.next()) {
@@ -186,8 +191,18 @@ public class Employee extends Model {
     }
 
     public static Employee findByEmail(String newEmailAddress) {
-        throw new UnsupportedOperationException("Implement me");
-    }
+        try (Connection conn = DB.connect();
+             PreparedStatement stmt = conn.prepareStatement("SELECT * FROM employees WHERE Email=?")){
+            stmt.setString(1, newEmailAddress);
+            ResultSet results = stmt.executeQuery();
+            if(results.next()){
+                return new Employee(results);
+            }else{
+                return null;
+            }
+        }catch(SQLException sqlException){
+            throw new RuntimeException(sqlException);
+        }    }
 
     public static Employee find(long employeeId) {
         try (Connection conn = DB.connect();

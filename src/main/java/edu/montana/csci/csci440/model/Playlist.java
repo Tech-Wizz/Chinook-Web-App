@@ -18,7 +18,7 @@ public class Playlist extends Model {
     public Playlist() {
     }
 
-    private Playlist(ResultSet results) throws SQLException {
+    public Playlist(ResultSet results) throws SQLException {
         name = results.getString("Name");
         playlistId = results.getLong("PlaylistId");
     }
@@ -59,6 +59,8 @@ public class Playlist extends Model {
              PreparedStatement stmt = conn.prepareStatement(
                      "SELECT * FROM playlists"
              )) {
+            stmt.setInt(1, count);
+            stmt.setInt(2, count*(page-1));
             ResultSet results = stmt.executeQuery();
             List<Playlist> resultList = new LinkedList<>();
             while (results.next()) {
