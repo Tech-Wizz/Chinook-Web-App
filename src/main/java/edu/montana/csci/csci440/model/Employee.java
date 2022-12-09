@@ -33,7 +33,13 @@ public class Employee extends Model {
     public static List<Employee.SalesSummary> getSalesSummaries() {
         //TODO - a GROUP BY query to determine the sales (look at the invoices table), using the SalesSummary class
         try (Connection conn = DB.connect();
-             PreparedStatement stmt = conn.prepareStatement("SELECT employees.FirstName,employees.LastName,employees.Email, COUNT(Total), ROUND(Sum(Total), 2) FROM employees JOIN customers on customers.SupportRepId=employees.EmployeeId JOIN invoices on invoices.CustomerId=customers.CustomerId GROUP BY EmployeeId")) {
+             PreparedStatement stmt = conn.prepareStatement("SELECT employees.EmployeeId, employees.FirstName, employees.LastName, employees.Email, " +
+                             "COUNT(customers.SupportRepId) as SalesCount, SUM(invoices.total) as SalesTotal " +
+                             "FROM employees " +
+                             "JOIN customers on employees.EmployeeId = customers.SupportRepId " +
+                             "JOIN invoices on customers.CustomerId = invoices.CustomerId " +
+                             "GROUP BY EmployeeId"
+             )) {
             ResultSet results = stmt.executeQuery();
             List<Employee.SalesSummary> resultList= new LinkedList<>();
             while (results.next()) {
@@ -88,7 +94,7 @@ public class Employee extends Model {
                 stmt.setString(1, this.getFirstName());
                 stmt.setString(2, this.getLastName());
                 stmt.setString(3, this.getEmail());
-                stmt.setLong(4, this.getReportsTo());
+                stmt.setString(3, this.title);
                 stmt.executeUpdate();
                 employeeId = DB.getLastID(conn);
                 return true;
