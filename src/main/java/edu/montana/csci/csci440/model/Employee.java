@@ -32,7 +32,16 @@ public class Employee extends Model {
 
     public static List<Employee.SalesSummary> getSalesSummaries() {
         //TODO - a GROUP BY query to determine the sales (look at the invoices table), using the SalesSummary class
-        return Collections.emptyList();
+        try (Connection conn = DB.connect();
+             PreparedStatement stmt = conn.prepareStatement("SELECT employees.FirstName,employees.LastName,employees.Email, COUNT(Total), ROUND(Sum(Total), 2) FROM employees JOIN customers on customers.SupportRepId=employees.EmployeeId JOIN invoices on invoices.CustomerId=customers.CustomerId GROUP BY EmployeeId")) {
+            ResultSet results = stmt.executeQuery();
+            List<Employee.SalesSummary> resultList= new LinkedList<>();
+            while (results.next()) {
+                resultList.add(new Employee.SalesSummary(results));
+            } return resultList;
+        } catch (SQLException sqlException) {
+            throw new RuntimeException(sqlException);
+        }
     }
 
     @Override
@@ -152,7 +161,7 @@ public class Employee extends Model {
     }
     public Employee getBoss() {
         //TODO implement
-        return null;
+        return Employee.find(this.getReportsTo());
     }
 
     public static List<Employee> all() {
@@ -201,6 +210,7 @@ public class Employee extends Model {
 
     public void setReportsTo(Employee employee) {
         // TODO implement
+        reportsTo = employee.employeeId;
     }
 
     public static class SalesSummary {

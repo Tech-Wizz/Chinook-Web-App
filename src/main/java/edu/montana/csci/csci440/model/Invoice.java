@@ -25,6 +25,7 @@ public class Invoice extends Model {
 
     private Invoice(ResultSet results) throws SQLException {
         billingAddress = results.getString("BillingAddress");
+        billingCity = results.getString("BillingCity");
         billingState = results.getString("BillingState");
         billingCountry = results.getString("BillingCountry");
         billingPostalCode = results.getString("BillingPostalCode");
@@ -34,7 +35,17 @@ public class Invoice extends Model {
 
     public List<InvoiceItem> getInvoiceItems(){
         //TODO implement
-        return Collections.emptyList();
+        try (Connection conn = DB.connect();
+             PreparedStatement stmt = conn.prepareStatement("SELECT * FROM invoices JOIN invoice_items on invoice_items.InvoiceId=invoices.InvoiceId JOIN tracks on tracks.TrackId=invoice_Items.TrackId WHERE invoices.InvoiceId=? ORDER By tracks.name")) {
+            stmt.setLong(1, this.getInvoiceId());
+            ResultSet results = stmt.executeQuery();
+            List<InvoiceItem> resultList= new LinkedList<>();
+            while (results.next()) {
+                resultList.add(new InvoiceItem(results));
+            } return resultList;
+        } catch (SQLException sqlException) {
+            throw new RuntimeException(sqlException);
+        }
     }
     public Customer getCustomer() {
         return null;

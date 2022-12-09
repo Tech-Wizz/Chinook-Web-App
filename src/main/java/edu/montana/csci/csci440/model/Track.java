@@ -25,7 +25,6 @@ public class Track extends Model {
     private Long milliseconds;
     private Long bytes;
     private BigDecimal unitPrice;
-
     public static final String REDIS_CACHE_KEY = "cs440-tracks-count-cache";
 
     public Track() {
@@ -36,7 +35,7 @@ public class Track extends Model {
         unitPrice = new BigDecimal("0");
     }
 
-    private Track(ResultSet results) throws SQLException {
+    public Track(ResultSet results) throws SQLException {
         name = results.getString("Name");
         milliseconds = results.getLong("Milliseconds");
         bytes = results.getLong("Bytes");
